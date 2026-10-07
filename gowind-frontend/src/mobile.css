@@ -1,0 +1,27 @@
+/* Phone layout (shopkeepers mostly order from phone). "body" prefix makes these win over the base styles. */
+@media (max-width: 640px) {
+  body .wrap { padding: 0 14px; }
+  body .hdr-row { gap: 10px; }
+  body .hdr .brand b { font-size: 18px; }
+  body .logo-img { height: 44px; }
+  body .userbox { text-align: left; max-width: none; width: 100%; }
+  body .u1, body .addr-edit { justify-content: flex-start; }
+  body .acts { width: 100%; justify-content: space-between; }
+  body .bigsearch { margin: 0; }
+  body .bigsearch input { padding: 11px 12px; font-size: 16px; }
+  body .bigsearch button { padding: 0 16px; }
+  body .hero { padding: 18px 16px; }
+  body .hero h1 { font-size: 22px; }
+  body .grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  body .card { padding: 10px; }
+  body .pimg { height: 120px; }
+  body .price { font-size: 19px; }
+  body .btns { flex-direction: column; }
+  body .panel { margin: 12px 0; padding: 16px; }
+  body .line { flex-wrap: wrap; }
+  body .arow { gap: 8px; }
+  body .arow .nm { flex-basis: 100%; }
+  body .frow { grid-template-columns: 1fr 1fr; }
+  body .toolbar h2 { margin: 16px 0 8px; }
+  body .ofoot { flex-direction: column; align-items: stretch; }
+}

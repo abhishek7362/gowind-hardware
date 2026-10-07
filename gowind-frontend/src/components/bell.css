@@ -1,0 +1,14 @@
+.bell{position:relative}
+.bellbtn{position:relative;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--tx);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.bellbtn:hover{border-color:var(--o)}
+.badge{position:absolute;top:-4px;right:-4px;min-width:19px;height:19px;padding:0 5px;border-radius:99px;background:#DC2626;color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.bdrop{position:absolute;right:0;top:calc(100% + 8px);width:340px;max-width:92vw;max-height:420px;overflow-y:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.12);text-align:left}
+.bhead{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--card)}
+.bhead button{background:none;border:none;color:var(--o);font:inherit;font-size:13px;cursor:pointer}
+.bempty{padding:16px 14px;margin:0;color:var(--mute);font-size:14px}
+.bitem{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;padding:10px 14px;border:none;border-bottom:1px solid var(--line);background:var(--card);font:inherit;font-size:14px;cursor:pointer;color:var(--tx)}
+.bitem span,.bitem small{color:var(--mute);font-size:13px}
+.bitem small{font-size:12px}
+.bitem.unread{background:#FFF4EC}
+.bitem:hover{background:#FFEDD5}
+@media (max-width:640px){body .bdrop{right:auto;left:0}}

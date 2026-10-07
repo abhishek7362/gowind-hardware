@@ -1,0 +1,12 @@
+.umenu{position:relative}
+.uicon{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:4px 12px 4px 4px;cursor:pointer;font:inherit;font-size:15px;color:var(--tx)}
+.uicon:hover{border-color:var(--o)}
+.uav{width:34px;height:34px;border-radius:50%;background:var(--o);color:#fff;display:flex;align-items:center;justify-content:center}
+.uarrow{font-size:9px;color:var(--mute)}
+.udrop{position:absolute;right:0;top:calc(100% + 8px);width:330px;max-width:90vw;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.12);text-align:left;font-size:14px;line-height:1.5}
+.udrop .u1{justify-content:flex-start}
+.udrop .addr-edit{justify-content:flex-start}
+.udrop .addr-edit input{width:100%}
+.umlinks{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.umlinks a,.umlinks button{background:none;border:none;color:var(--o);font:inherit;font-size:14px;font-weight:500;cursor:pointer;padding:0}
+@media (max-width:640px){body .udrop{right:auto;left:0}}
