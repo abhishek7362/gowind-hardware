@@ -16,6 +16,7 @@ app.use('/api/notifications', require('./routes/notifications'));
 
 app.get('/', (req, res) => res.json({ ok: true, app: 'Gowind Hardware API' }));
 
+
 mongoose.connect(process.env.MONGO_URI).then(() => {
   const port = process.env.PORT || 5000;
   app.listen(port, () => console.log('Server running on port ' + port));
