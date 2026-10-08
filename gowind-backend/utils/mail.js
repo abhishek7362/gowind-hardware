@@ -1,6 +1,7 @@
-// Order emails.
-// Laptop par: Gmail SMTP (SMTP_USER + SMTP_PASS).
-// Online (Render free plan SMTP block karta hai): Brevo ki HTTPS API (BREVO_API_KEY + MAIL_FROM).
+// Order emails. Teen tareeke, jo variable set ho wahi chalta hai (is order mein):
+// 1) MAIL_WEBHOOK_URL + MAIL_WEBHOOK_SECRET : apne Gmail ki Google Apps Script (free, HTTPS, signup nahi)
+// 2) BREVO_API_KEY + MAIL_FROM              : Brevo ki HTTPS API
+// 3) SMTP_USER + SMTP_PASS                  : Gmail SMTP (sirf laptop par; Render free plan par block hai)
 // Email set na ho to app chalta rehta hai, bas mail skip hoti hai.
 const nodemailer = require('nodemailer');
 
@@ -22,6 +23,16 @@ function getTransporter() {
   return transporter;
 }
 
+async function sendViaWebhook({ to, subject, html }) {
+  const res = await fetch(process.env.MAIL_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ secret: process.env.MAIL_WEBHOOK_SECRET, to, subject, html, name: SHOP() })
+  });
+  const body = (await res.text()).trim();
+  if (!res.ok || body !== 'ok') throw new Error('Webhook ' + res.status + ': ' + body.slice(0, 150));
+}
+
 async function sendViaBrevo({ to, subject, html }) {
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
@@ -40,11 +51,13 @@ async function sendViaBrevo({ to, subject, html }) {
 async function sendMail({ to, subject, html }) {
   if (!to) { console.log('[mail skipped]', subject, '-> (no email address)'); return; }
   try {
-    if (process.env.BREVO_API_KEY) {
+    if (process.env.MAIL_WEBHOOK_URL) {
+      await sendViaWebhook({ to, subject, html });
+    } else if (process.env.BREVO_API_KEY) {
       await sendViaBrevo({ to, subject, html });
     } else {
       const t = getTransporter();
-      if (!t) { console.log('[mail skipped] email settings nahi hain (BREVO_API_KEY ya SMTP_USER/SMTP_PASS):', subject); return; }
+      if (!t) { console.log('[mail skipped] email settings nahi hain (MAIL_WEBHOOK_URL, BREVO_API_KEY ya SMTP_USER/SMTP_PASS):', subject); return; }
       await t.sendMail({ from: `"${SHOP()}" <${process.env.SMTP_USER}>`, to, subject, html });
     }
     console.log('[mail sent]', subject, '->', to);

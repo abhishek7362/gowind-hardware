@@ -4,20 +4,31 @@ const User = require('../models/User');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Ledger = require('../models/Ledger');
+const { sendMail, notifyCustomerStatus } = require('../utils/mail');
 const { isValidObjectId } = require('mongoose');
-const { notifyStatus } = require('../utils/mail');
+const { statusForBuyer } = require('../utils/notify');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { auth, requireRole } = require('../middleware/auth');
-   const { statusForBuyer } = require('../utils/notify');
 
-// Product photos are saved in the backend /uploads folder (JPG, PNG, WEBP up to 2 MB)
+// Product photos (JPG, PNG, WEBP up to 2 MB).
+// Cloudinary keys set hon (online) -> photo Cloudinary par jati hai aur hamesha rehti hai.
+// Set na hon (laptop) -> photo backend ke /uploads folder mein save hoti hai.
+const cloudinary = require('cloudinary').v2;
+const useCloud = !!(process.env.CLOUDINARY_URL || process.env.CLOUDINARY_CLOUD_NAME);
+if (useCloud && !process.env.CLOUDINARY_URL) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+  });
+}
 const dir = path.join(__dirname, '..', 'uploads');
-fs.mkdirSync(dir, { recursive: true });
+if (!useCloud) fs.mkdirSync(dir, { recursive: true });
 const EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
 const upload = multer({
-  storage: multer.diskStorage({
+  storage: useCloud ? multer.memoryStorage() : multer.diskStorage({
     destination: dir,
     filename: (req, file, cb) => cb(null, Date.now() + '-' + Math.round(Math.random() * 1e6) + EXT[file.mimetype])
   }),
@@ -31,14 +42,13 @@ const newPin = () => String(Math.floor(100000 + Math.random() * 900000));
 
 // Create a shopkeeper: generates shop ID and a temporary PIN (shown only once)
 router.post('/shopkeepers', async (req, res) => {
-  const { name, shopName, email } = req.body;
+  const { name, shopName } = req.body;
   if (!name || !shopName) return res.status(400).json({ error: 'name and shopName required' });
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Email sahi nahi hai' });
   const count = await User.countDocuments({ role: 'shopkeeper' });
   const shopId = 'GWD-' + (1001 + count);
   const pin = newPin();
   await User.create({
-    name, shopName, shopId, role: 'shopkeeper', email: (email || '').trim().toLowerCase(),
+    name, shopName, shopId, role: 'shopkeeper',
     passwordHash: await bcrypt.hash(pin, 10), mustChangePassword: true
   });
   res.status(201).json({ shopId, tempPin: pin });
@@ -92,7 +102,20 @@ router.post('/products/:id/image', (req, res) => {
   upload.single('image')(req, res, async err => {
     if (err) return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'Photo 2 MB se choti honi chahiye' : err.message });
     if (!req.file) return res.status(400).json({ error: 'Photo chuno' });
-    const p = await Product.findByIdAndUpdate(req.params.id, { imageUrl: '/uploads/' + req.file.filename }, { new: true });
+    let imageUrl;
+    if (useCloud) {
+      try {
+        imageUrl = await new Promise((resolve, reject) => {
+          cloudinary.uploader.upload_stream({ folder: 'gowind/products', resource_type: 'image' },
+            (e, r) => (e ? reject(e) : resolve(r.secure_url))).end(req.file.buffer);
+        });
+      } catch (e) {
+        return res.status(500).json({ error: 'Photo upload nahi hui: ' + e.message });
+      }
+    } else {
+      imageUrl = '/uploads/' + req.file.filename;
+    }
+    const p = await Product.findByIdAndUpdate(req.params.id, { imageUrl }, { new: true });
     p ? res.json(p) : res.status(404).json({ error: 'Product not found' });
   });
 });
@@ -113,14 +136,22 @@ router.patch('/orders/:id/status', async (req, res) => {
     if (o.paymentMode === 'udhaar')
       await Ledger.create({ shopkeeper: o.user, order: o._id, type: 'credit', amount: o.total, note: 'Order cancel hua' });
   }
-  const changed = o.status !== status;
+  const prev = o.status;
   o.status = status;
   await o.save();
-  if (changed) User.findById(o.user).then(buyer => buyer && notifyStatus(o, buyer)).catch(() => {});
-     statusForBuyer(o).catch(() => {});
-  
-  // email, never blocks
+  statusForBuyer(o).catch(() => {});           // bell notification for the buyer
+  if (status !== prev && status !== 'pending') {
+    const buyer = await User.findById(o.user).select('name email');
+    notifyCustomerStatus(o, o.email || (buyer && buyer.email), buyer && buyer.name);   // background mail to customer
+  }
   res.json(o);
+});
+
+// Quick check that email setup works (sends a test mail to the owner)
+router.post('/test-mail', async (req, res) => {
+  const to = process.env.OWNER_EMAIL || process.env.SMTP_USER;
+  const r = await sendMail({ to, subject: 'Gowind Hardware - test mail', text: 'Email setup sahi chal raha hai.' });
+  res.json({ to, ...r });
 });
 
 // Rename a category for all its products (fixes Steel / steel type spelling problems)
